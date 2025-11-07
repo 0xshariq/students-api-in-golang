@@ -1,4 +1,5 @@
 env: "development"
 storage_path: "storage/storage.db"
-http-server:
-  address: "localhost:8082"
+http_server:
+  host: "localhost"
+  port: 8000

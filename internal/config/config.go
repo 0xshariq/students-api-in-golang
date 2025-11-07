@@ -8,14 +8,14 @@ import (
 )
 
 type HttpServer struct {
-	address string
-	port    int
+	Host string
+	Port int
 }
 
 type Config struct {
 	Env         string     `yaml:"env" env: "ENV" env-required: "true" env-default: "production"`
 	StoragePath string     `yaml:"storage_path" env: "STORAGE_PATH" env-required: "true" env-default: "/storage"`
-	HttpServer  HttpServer `yaml:"http_server"`
+	HttpServer `yaml:"http_server"`
 }
 
 func MustConfig() *Config {
