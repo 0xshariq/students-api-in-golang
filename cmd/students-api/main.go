@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/0xshariq/students-api-in-golang/internal/config"
+	"github.com/0xshariq/students-api-in-golang/internal/http/handlers/student"
 )
 
 func main() {
@@ -29,13 +30,8 @@ func main() {
 	// setup router
 	router := http.NewServeMux()
 
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		w.Write([]byte("Welcome to students api in golang"))
-	})
+	router.HandleFunc("GET /", student.Home())
+	router.HandleFunc("POST /api/students", student.NewStudent())
 	// setup server
 	serverAddr := fmt.Sprintf("%s:%d", cfg.HttpServer.Host, cfg.HttpServer.Port)
 	server := http.Server{
