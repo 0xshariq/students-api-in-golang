@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/0xshariq/students-api-in-golang/internal/config"
 	"log"
 	"net/http"
-
-	"github.com/0xshariq/students-api-in-golang/internal/config"
 )
 
 func main() {
