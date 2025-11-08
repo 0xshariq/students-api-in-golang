@@ -44,3 +44,12 @@ func NewStudent() http.HandlerFunc {
 		response.WriteJSON(w, http.StatusCreated, map[string]string{"success": "ok"})
 	}
 }
+func CreateStudent(name string, email string, age int) (int64, error) {
+	return 0, nil
+}
+func DeleteStudent(id int64) (string, error) {
+	return "", nil
+}
+func UpdateStudent(id int64, data any) (string, error) {
+	return "", nil
+}

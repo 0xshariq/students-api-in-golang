@@ -35,7 +35,9 @@ func main() {
 	router := http.NewServeMux()
 
 	router.HandleFunc("GET /", student.Home())
-	router.HandleFunc("POST /api/students", student.NewStudent())
+	router.HandleFunc("POST /api/students/create", student.NewStudent())
+	// router.HandleFunc("DELETE /api/students/create", student.DeleteStudent())
+	// router.HandleFunc("PUT /api/students/create", student.UpdateStudent())
 	// setup server
 	serverAddr := fmt.Sprintf("%s:%d", cfg.HttpServer.Host, cfg.HttpServer.Port)
 	server := http.Server{
