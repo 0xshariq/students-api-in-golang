@@ -26,25 +26,31 @@ func main() {
 	fmt.Printf("  HTTP Server Port: %d\n", cfg.HttpServer.Port)
 
 	// database setup
-	db, err := sqlite.New(cfg)
+	storage, err := sqlite.New(cfg)
 	if err != nil {
 		log.Fatal("failed to initialize sqlite:", err)
 	}
-	_ = db
+	slog.Info("Storage Initiallized", slog.String("env", cfg.Env), slog.String("version", "1.0.0"))
+
+
+	
 	// setup router
 	router := http.NewServeMux()
 
 	router.HandleFunc("GET /", student.Home())
-	router.HandleFunc("POST /api/students/create", student.NewStudent())
-	// router.HandleFunc("DELETE /api/students/create", student.DeleteStudent())
-	// router.HandleFunc("PUT /api/students/create", student.UpdateStudent())
+	router.HandleFunc("POST /api/students/create", student.NewStudent(storage))
+	router.HandleFunc("DELETE /api/students/delete/{id}", student.DeleteStudent(storage))
+	router.HandleFunc("PUT /api/students/update/{id}", student.UpdateStudent(storage))
+
+
+
 	// setup server
 	serverAddr := fmt.Sprintf("%s:%d", cfg.HttpServer.Host, cfg.HttpServer.Port)
 	server := http.Server{
 		Addr:    serverAddr,
 		Handler: router,
 	}
-
+	slog.Info("Server Started", slog.String("host", cfg.Host), slog.Int("port", cfg.Port))
 	fmt.Printf("Starting server on %s...\n", server.Addr)
 
 	done := make(chan os.Signal, 1)

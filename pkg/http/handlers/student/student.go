@@ -6,10 +6,13 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 
+	"github.com/0xshariq/students-api-in-golang/pkg/storage"
 	"github.com/0xshariq/students-api-in-golang/pkg/types"
 	"github.com/0xshariq/students-api-in-golang/pkg/utils/response"
 	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/mux"
 )
 
 func Home() http.HandlerFunc {
@@ -18,7 +21,7 @@ func Home() http.HandlerFunc {
 	}
 }
 
-func NewStudent() http.HandlerFunc {
+func NewStudent(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		slog.Info("Creating a student")
@@ -41,15 +44,72 @@ func NewStudent() http.HandlerFunc {
 			return
 		}
 
-		response.WriteJSON(w, http.StatusCreated, map[string]string{"success": "ok"})
+		Id, err := storage.CreateStudent(student.Name, student.Email, student.Age)
+		if err != nil {
+			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		slog.Info("Student created successfully", slog.Int64("id", Id))
+
+		response.WriteJSON(w, http.StatusCreated, map[string]int64{"id": Id})
 	}
 }
-func CreateStudent(name string, email string, age int) (int64, error) {
-	return 0, nil
+
+func DeleteStudent(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract student ID from URL parameters
+		id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+		if err != nil {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
+
+		// Call the storage layer to delete the student
+		message, err := storage.DeleteStudent(id)
+		if err != nil {
+			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJSON(w, http.StatusOK, map[string]string{"message": message})
+	}
 }
-func DeleteStudent(id int64) (string, error) {
-	return "", nil
-}
-func UpdateStudent(id int64, data any) (string, error) {
-	return "", nil
+func UpdateStudent(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract student ID from URL parameters
+		id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+		if err != nil {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
+
+		var student types.Student
+		error := json.NewDecoder(r.Body).Decode(&student)
+		if errors.Is(error, io.EOF) {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(errors.New("empty body")))
+			return
+		}
+
+		if error != nil {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(error))
+			return
+		}
+
+		// request validator
+		if err := validator.New().Struct(student); err != nil {
+			validateError := err.(validator.ValidationErrors)
+			response.WriteJSON(w, http.StatusBadRequest, response.ValidationError(validateError))
+			return
+		}
+
+		// Call the storage layer to update the student
+		message, err := storage.UpdateStudent(id, student.Name, student.Email, student.Age)
+		if err != nil {
+			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJSON(w, http.StatusOK, map[string]string{"message": message})
+	}
 }
