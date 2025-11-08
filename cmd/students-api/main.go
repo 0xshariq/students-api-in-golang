@@ -11,8 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/0xshariq/students-api-in-golang/internal/config"
-	"github.com/0xshariq/students-api-in-golang/internal/http/handlers/student"
+	"github.com/0xshariq/students-api-in-golang/pkg/config"
+	"github.com/0xshariq/students-api-in-golang/pkg/http/handlers/student"
+	"github.com/0xshariq/students-api-in-golang/pkg/storage/sqlite"
 )
 
 func main() {
@@ -25,8 +26,11 @@ func main() {
 	fmt.Printf("  HTTP Server Port: %d\n", cfg.HttpServer.Port)
 
 	// database setup
-	databaseUrl := cfg.StoragePath
-	_ = databaseUrl
+	db, err := sqlite.New(cfg)
+	if err != nil {
+		log.Fatal("failed to initialize sqlite:", err)
+	}
+	_ = db
 	// setup router
 	router := http.NewServeMux()
 

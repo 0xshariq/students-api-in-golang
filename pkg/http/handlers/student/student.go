@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/0xshariq/students-api-in-golang/internal/types"
-	"github.com/0xshariq/students-api-in-golang/internal/utils/response"
+	"github.com/0xshariq/students-api-in-golang/pkg/types"
+	"github.com/0xshariq/students-api-in-golang/pkg/utils/response"
 	"github.com/go-playground/validator/v10"
 )
 
