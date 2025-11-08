@@ -1,7 +1,10 @@
 package storage
 
+import "github.com/0xshariq/students-api-in-golang/pkg/types"
+
 type Storage interface {
 	CreateStudent(name string, email string, age int) (int64, error)
-	DeleteStudent(id int64) (string, error)
-	UpdateStudent(id int64, name string, email string, age int) (string, error)
+	GetStudentByID(id int64) (types.Student, error)
+	// DeleteStudent(id string) (string, error)
+	// UpdateStudent(id string, name string, email string, age int) (string, error)
 }

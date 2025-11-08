@@ -12,7 +12,6 @@ import (
 	"github.com/0xshariq/students-api-in-golang/pkg/types"
 	"github.com/0xshariq/students-api-in-golang/pkg/utils/response"
 	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/mux"
 )
 
 func Home() http.HandlerFunc {
@@ -56,60 +55,77 @@ func NewStudent(storage storage.Storage) http.HandlerFunc {
 	}
 }
 
-func DeleteStudent(storage storage.Storage) http.HandlerFunc {
+func GetStudent(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Extract student ID from URL parameters
-		id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
-		if err != nil {
-			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(err))
+		id := r.PathValue("id")
+		slog.Info("Getting a student...", slog.String("id", id))
+
+		// converting string id to int64
+		intId, e := strconv.ParseInt(id, 10, 64)
+		if e != nil {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(errors.New("invalid id format")))
 			return
 		}
 
-		// Call the storage layer to delete the student
-		message, err := storage.DeleteStudent(id)
+		// Call the storage layer to get the student
+		student, err := storage.GetStudentByID(intId)
 		if err != nil {
+			slog.Error("error getting user", slog.String("id", id))
 			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
 		}
 
-		response.WriteJSON(w, http.StatusOK, map[string]string{"message": message})
+		response.WriteJSON(w, http.StatusOK, student)
+		
 	}
 }
-func UpdateStudent(storage storage.Storage) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Extract student ID from URL parameters
-		id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
-		if err != nil {
-			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(err))
-			return
-		}
 
-		var student types.Student
-		error := json.NewDecoder(r.Body).Decode(&student)
-		if errors.Is(error, io.EOF) {
-			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(errors.New("empty body")))
-			return
-		}
+// func DeleteStudent(storage storage.Storage) http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		id := r.PathValue("id")
+// 		slog.Info("Deleting a student...", slog.String("id", id))
 
-		if error != nil {
-			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(error))
-			return
-		}
+// 		// Call the storage layer to delete the student
+// 		message, err := storage.DeleteStudent(id)
+// 		if err != nil {
+// 			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
+// 			return
+// 		}
 
-		// request validator
-		if err := validator.New().Struct(student); err != nil {
-			validateError := err.(validator.ValidationErrors)
-			response.WriteJSON(w, http.StatusBadRequest, response.ValidationError(validateError))
-			return
-		}
+// 		response.WriteJSON(w, http.StatusOK, map[string]string{"message": message})
+// 	}
+// }
+// func UpdateStudent(storage storage.Storage) http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		id := r.PathValue("id")
+// 		slog.Info("Updating a student...", slog.String("id", id))
 
-		// Call the storage layer to update the student
-		message, err := storage.UpdateStudent(id, student.Name, student.Email, student.Age)
-		if err != nil {
-			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
-			return
-		}
+// 		var student types.Student
+// 		error := json.NewDecoder(r.Body).Decode(&student)
+// 		if errors.Is(error, io.EOF) {
+// 			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(errors.New("empty body")))
+// 			return
+// 		}
 
-		response.WriteJSON(w, http.StatusOK, map[string]string{"message": message})
-	}
-}
+// 		if error != nil {
+// 			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(error))
+// 			return
+// 		}
+
+// 		// request validator
+// 		if err := validator.New().Struct(student); err != nil {
+// 			validateError := err.(validator.ValidationErrors)
+// 			response.WriteJSON(w, http.StatusBadRequest, response.ValidationError(validateError))
+// 			return
+// 		}
+
+// 		// Call the storage layer to update the student
+// 		message, err := storage.UpdateStudent(id, student.Name, student.Email, student.Age)
+// 		if err != nil {
+// 			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
+// 			return
+// 		}
+
+// 		response.WriteJSON(w, http.StatusOK, map[string]string{"message": message})
+// 	}
+// }

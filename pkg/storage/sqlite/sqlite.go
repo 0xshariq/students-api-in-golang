@@ -2,8 +2,10 @@ package sqlite
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/0xshariq/students-api-in-golang/pkg/config"
+	"github.com/0xshariq/students-api-in-golang/pkg/types"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -52,33 +54,56 @@ func (s *Sqlite) CreateStudent(name string, email string, age int) (int64, error
 
 	return id, nil
 }
-func (s *Sqlite) DeleteStudent(id int64) (string, error) {
 
-	statement, err := s.DB.Prepare("DELETE FROM students WHERE id = ?")
+func (s *Sqlite) GetStudentByID(id int64) (types.Student, error) {
+
+	statement, err := s.DB.Prepare("SELECT * FROM students WHERE id = ? LIMIT 1")
 	if err != nil {
-		return "", err
+		return types.Student{}, err
 	}
 	defer statement.Close()
 
-	_, err = statement.Exec(id)
+	var student types.Student
+	err = statement.QueryRow(id).Scan(&student.Id, &student.Name, &student.Email, &student.Age)
 	if err != nil {
-		return "", err
+		if err == sql.ErrNoRows {
+			return types.Student{}, fmt.Errorf("no student found with id %d", id)
+		}
+		return types.Student{}, fmt.Errorf("query error: %w", err)
 	}
 
-	return "Student deleted successfully", nil
+	return student, nil
+
 }
-func (s *Sqlite) UpdateStudent(id int64, name string, email string, age int) (string, error) {
 
-	statement, err := s.DB.Prepare("UPDATE students SET name = ?, email = ?, age = ? WHERE id = ?")
-	if err != nil {
-		return "", err
-	}
-	defer statement.Close()
+// func (s *Sqlite) DeleteStudent(id int64) (string, error) {
 
-	_, err = statement.Exec(name, email, age, id)
-	if err != nil {
-		return "", err
-	}
+// 	statement, err := s.DB.Prepare("DELETE FROM students WHERE id = ?")
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	defer statement.Close()
 
-	return "Student updated successfully", nil
-}
+// 	_, err = statement.Exec(id)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	return "Student deleted successfully", nil
+// }
+
+// func (s *Sqlite) UpdateStudent(id int64, name string, email string, age int) (string, error) {
+
+// 	statement, err := s.DB.Prepare("UPDATE students SET name = ?, email = ?, age = ? WHERE id = ?")
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	defer statement.Close()
+
+// 	_, err = statement.Exec(name, email, age, id)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	return "Student updated successfully", nil
+// }
