@@ -39,8 +39,8 @@ func main() {
 	router.HandleFunc("GET /api/students/{id}", student.GetStudent(storage))
 	router.HandleFunc("GET /api/students", student.GetStudents(storage))
 	router.HandleFunc("POST /api/students/create", student.NewStudent(storage))
-	// router.HandleFunc("DELETE /api/students/delete/{id}", student.DeleteStudent(storage))
-	// router.HandleFunc("PUT /api/students/update/{id}", student.UpdateStudent(storage))
+	router.HandleFunc("DELETE /api/students/delete/{id}", student.DeleteStudent(storage))
+	router.HandleFunc("PUT /api/students/update/{id}", student.UpdateStudent(storage))
 
 	// setup server
 	serverAddr := fmt.Sprintf("%s:%d", cfg.HttpServer.Host, cfg.HttpServer.Port)

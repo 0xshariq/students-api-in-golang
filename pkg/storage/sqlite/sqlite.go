@@ -67,7 +67,8 @@ func (s *Sqlite) GetStudentByID(id int64) (types.Student, error) {
 	err = statement.QueryRow(id).Scan(&student.Id, &student.Name, &student.Email, &student.Age)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return types.Student{}, fmt.Errorf("no student found with id %d", id)
+			// return sql.ErrNoRows so callers can detect not-found
+			return types.Student{}, sql.ErrNoRows
 		}
 		return types.Student{}, fmt.Errorf("query error: %w", err)
 	}
@@ -107,34 +108,56 @@ func (s *Sqlite) GetAllStudents() ([]types.Student, error) {
 	return students, nil
 }
 
-// func (s *Sqlite) DeleteStudent(id int64) (string, error) {
+func (s *Sqlite) DeleteStudent(id int64) (sql.Result, error) {
 
-// 	statement, err := s.DB.Prepare("DELETE FROM students WHERE id = ?")
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	defer statement.Close()
+	statement, err := s.DB.Prepare("DELETE FROM students WHERE id = ?")
+	if err != nil {
+		return nil, err
+	}
+	defer statement.Close()
 
-// 	_, err = statement.Exec(id)
-// 	if err != nil {
-// 		return "", err
-// 	}
+	result, err := statement.Exec(id)
+	if err != nil {
+		return nil, err
+	}
 
-// 	return "Student deleted successfully", nil
-// }
+	// Check if any row was actually deleted
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
 
-// func (s *Sqlite) UpdateStudent(id int64, name string, email string, age int) (string, error) {
+	if rowsAffected == 0 {
+		// No student with this ID exists
+		return nil, sql.ErrNoRows
+	}
 
-// 	statement, err := s.DB.Prepare("UPDATE students SET name = ?, email = ?, age = ? WHERE id = ?")
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	defer statement.Close()
+	return result, nil
+}
 
-// 	_, err = statement.Exec(name, email, age, id)
-// 	if err != nil {
-// 		return "", err
-// 	}
+func (s *Sqlite) UpdateStudent(id int64, name string, email string, age int) (sql.Result, error) {
 
-// 	return "Student updated successfully", nil
-// }
+	statement, err := s.DB.Prepare("UPDATE students SET name = ?, email = ?, age = ? WHERE id = ?")
+	if err != nil {
+		return nil, err
+	}
+	defer statement.Close()
+
+	result, err := statement.Exec(name, email, age, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if any row was actually updated
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if rowsAffected == 0 {
+		// No student with this ID exists
+		return nil, sql.ErrNoRows
+	}
+
+	return result, nil
+}

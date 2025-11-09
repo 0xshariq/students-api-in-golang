@@ -1,6 +1,7 @@
 package student
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -70,7 +71,12 @@ func GetStudent(storage storage.Storage) http.HandlerFunc {
 		// Call the storage layer to get the student
 		student, err := storage.GetStudentByID(intId)
 		if err != nil {
-			slog.Error("error getting user", slog.String("id", id))
+			// Distinguish between not-found and other DB errors
+			if errors.Is(err, sql.ErrNoRows) {
+				response.WriteJSON(w, http.StatusNotFound, response.GeneralError(errors.New("student not found")))
+				return
+			}
+			slog.Error("error getting user", slog.String("id", id), slog.String("error", err.Error()))
 			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
 		}
@@ -97,52 +103,76 @@ func GetStudents(storage storage.Storage) http.HandlerFunc {
 	}
 }
 
-// func DeleteStudent(storage storage.Storage) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		id := r.PathValue("id")
-// 		slog.Info("Deleting a student...", slog.String("id", id))
+func DeleteStudent(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		slog.Info("Deleting a student...", slog.String("id", id))
 
-// 		// Call the storage layer to delete the student
-// 		message, err := storage.DeleteStudent(id)
-// 		if err != nil {
-// 			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
-// 			return
-// 		}
+		// converting string id to int64
+		intId, e := strconv.ParseInt(id, 10, 64)
+		if e != nil {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(errors.New("invalid id format")))
+			return
+		}
 
-// 		response.WriteJSON(w, http.StatusOK, map[string]string{"message": message})
-// 	}
-// }
-// func UpdateStudent(storage storage.Storage) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		id := r.PathValue("id")
-// 		slog.Info("Updating a student...", slog.String("id", id))
+		// Call the storage layer to delete the student
+		_, err := storage.DeleteStudent(intId)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				response.WriteJSON(w, http.StatusNotFound, response.GeneralError(errors.New("student not found")))
+				return
+			}
+			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
 
-// 		var student types.Student
-// 		error := json.NewDecoder(r.Body).Decode(&student)
-// 		if errors.Is(error, io.EOF) {
-// 			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(errors.New("empty body")))
-// 			return
-// 		}
+		response.WriteJSON(w, http.StatusOK, map[string]string{"message": "student deleted successfully"})
+	}
+}
+func UpdateStudent(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		slog.Info("Updating a student...", slog.String("id", id))
 
-// 		if error != nil {
-// 			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(error))
-// 			return
-// 		}
+		// converting string id to int64
+		intId, e := strconv.ParseInt(id, 10, 64)
+		if e != nil {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(errors.New("invalid id format")))
+			return
+		}
 
-// 		// request validator
-// 		if err := validator.New().Struct(student); err != nil {
-// 			validateError := err.(validator.ValidationErrors)
-// 			response.WriteJSON(w, http.StatusBadRequest, response.ValidationError(validateError))
-// 			return
-// 		}
+		// parse request body
+		var student types.Student
+		error := json.NewDecoder(r.Body).Decode(&student)
+		if errors.Is(error, io.EOF) {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(errors.New("empty body")))
+			return
+		}
 
-// 		// Call the storage layer to update the student
-// 		message, err := storage.UpdateStudent(id, student.Name, student.Email, student.Age)
-// 		if err != nil {
-// 			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
-// 			return
-// 		}
+		// check for json decode error
+		if error != nil {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(error))
+			return
+		}
 
-// 		response.WriteJSON(w, http.StatusOK, map[string]string{"message": message})
-// 	}
-// }
+		// request validator
+		if err := validator.New().Struct(student); err != nil {
+			validateError := err.(validator.ValidationErrors)
+			response.WriteJSON(w, http.StatusBadRequest, response.ValidationError(validateError))
+			return
+		}
+
+		// Call the storage layer to update the student
+		_, err := storage.UpdateStudent(intId, student.Name, student.Email, student.Age)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				response.WriteJSON(w, http.StatusNotFound, response.GeneralError(errors.New("student not found")))
+				return
+			}
+			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJSON(w, http.StatusOK, map[string]string{"message": "student updated successfully"})
+	}
+}
