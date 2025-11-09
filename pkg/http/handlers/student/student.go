@@ -76,7 +76,24 @@ func GetStudent(storage storage.Storage) http.HandlerFunc {
 		}
 
 		response.WriteJSON(w, http.StatusOK, student)
-		
+
+	}
+}
+
+func GetStudents(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("Getting all students...")
+
+		// Call the storage layer to get all students
+		students, err := storage.GetAllStudents()
+		if err != nil {
+			slog.Error("error getting students")
+			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJSON(w, http.StatusOK, students)
+
 	}
 }
 
